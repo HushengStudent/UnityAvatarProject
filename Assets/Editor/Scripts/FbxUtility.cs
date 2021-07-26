@@ -9,88 +9,103 @@ namespace UnityAvatar.Editor
         private static readonly string _fbxPath = "Assets/Arts/Fbx";
         private static readonly string _meshPath = "Assets/Resources/Mesh";
         private static readonly string _texturePath = "Assets/Resources/Texture";
-        private static readonly string _avatarPath = "Assets/Resources/Avatar";
+        private static readonly string _prefabPath = "Assets/Resources/Prefab";
 
         [MenuItem("UnityAvatarProject/Helper/Process Fbx", false, 1)]
         public static void Process()
         {
-            EnsureCreateDirectory(_avatarPath);
-
-            foreach (var file in Directory.GetFiles($"{_fbxPath}/Role"))
+            //EnsureCreateDirectory(_avatarPath);
             {
-                var extention = Path.GetExtension(file);
-                if (extention != ".FBX" && extention != ".fbx")
-                {
-                    continue;
-                }
-                var fbxAsset = AssetDatabase.LoadAssetAtPath<GameObject>(file);
-                var fbxObject = Object.Instantiate(fbxAsset);
-                var smrs = fbxObject.GetComponentsInChildren<SkinnedMeshRenderer>();
+                var meshDirectory = $"{_meshPath}/Role";
+                var texDirectory = $"{_texturePath}/Role";
+                var prefabDirectory = $"{_prefabPath}/Role";
 
-                var prefabDirectory = $"{_meshPath}/Role/{fbxAsset.name}";
-                var texDirectory = $"{_texturePath}/Role/{fbxAsset.name}";
+                EnsureCreateDirectory(meshDirectory);
+                EnsureCreateDirectory(texDirectory);
+                EnsureCreateDirectory(prefabDirectory);
 
-                if (smrs.Length > 0)
+                foreach (var file in Directory.GetFiles($"{_fbxPath}/Role"))
                 {
-                    EnsureCreateDirectory(prefabDirectory);
-                    EnsureCreateDirectory(texDirectory);
-                }
+                    var extention = Path.GetExtension(file);
+                    if (extention != ".FBX" && extention != ".fbx")
+                    {
+                        continue;
+                    }
+                    var fbxAsset = AssetDatabase.LoadAssetAtPath<GameObject>(file);
+                    var fbxObject = Object.Instantiate(fbxAsset);
+                    fbxObject.name = fbxAsset.name;
 
-                foreach (var smr in smrs)
-                {
+                    var smr = fbxObject.GetComponentsInChildren<SkinnedMeshRenderer>()[0];
+
                     var mesh = Object.Instantiate(smr.sharedMesh) as Mesh;
                     mesh.name = smr.sharedMesh.name;
                     mesh.UploadMeshData(false);
 
                     var tex = smr.sharedMaterial.mainTexture as Texture2D;
-                    SaveMesh(prefabDirectory, texDirectory, mesh, tex);
-                }
+                    SaveMesh(meshDirectory, texDirectory, mesh, tex);
 
-                var avatar = AvatarBuilder.BuildGenericAvatar(fbxObject, fbxObject.name);
-                if (avatar)
-                {
-                    var avatarPath = $"{_avatarPath}/{fbxAsset.name}.asset";
-                    if (File.Exists(avatarPath))
+                    smr.sharedMesh = mesh;
+                    smr.sharedMaterial = null;
+
+                    PrefabUtility.SaveAsPrefabAsset(fbxObject, $"{prefabDirectory}/{fbxObject.name}.prefab");
+
+                    /*
+                    var avatar = AvatarBuilder.BuildGenericAvatar(fbxObject, fbxObject.name);
+                    if (avatar)
                     {
-                        AssetDatabase.DeleteAsset(avatarPath);
-                        AssetDatabase.Refresh();
+                        var avatarPath = $"{_avatarPath}/{fbxAsset.name}.asset";
+                        if (File.Exists(avatarPath))
+                        {
+                            AssetDatabase.DeleteAsset(avatarPath);
+                            AssetDatabase.Refresh();
+                        }
+                        AssetDatabase.CreateAsset(avatar, avatarPath);
+                        AssetDatabase.SaveAssets();
                     }
-                    AssetDatabase.CreateAsset(avatar, avatarPath);
-                    AssetDatabase.SaveAssets();
+                    */
+                    Object.DestroyImmediate(fbxObject);
+
+                    AssetDatabase.Refresh();
+
                 }
-
-                Object.DestroyImmediate(fbxObject);
-
-                AssetDatabase.Refresh();
             }
 
-            foreach (var file in Directory.GetFiles($"{_fbxPath}/Weapon"))
             {
-                var extention = Path.GetExtension(file);
-                if (extention != ".FBX" && extention != ".fbx")
-                {
-                    continue;
-                }
-                var fbxAsset = AssetDatabase.LoadAssetAtPath<GameObject>(file);
-                var fbxObject = Object.Instantiate(fbxAsset);
-                var meshFilter = fbxObject.GetComponent<MeshFilter>();
-                var meshRenderer = fbxObject.GetComponent<MeshRenderer>();
-
-                var prefabDirectory = $"{_meshPath}/Weapon/{fbxAsset.name}";
-                var texDirectory = $"{_texturePath}/Weapon/{fbxAsset.name}";
-                EnsureCreateDirectory(prefabDirectory);
+                var meshDirectory = $"{_meshPath}/Weapon";
+                var texDirectory = $"{_texturePath}/Weapon";
+                var prefabDirectory = $"{_prefabPath}/Weapon";
+                EnsureCreateDirectory(meshDirectory);
                 EnsureCreateDirectory(texDirectory);
+                EnsureCreateDirectory(prefabDirectory);
 
-                var mesh = Object.Instantiate(meshFilter.sharedMesh) as Mesh;
-                mesh.name = meshFilter.sharedMesh.name;
-                mesh.UploadMeshData(false);
+                foreach (var file in Directory.GetFiles($"{_fbxPath}/Weapon"))
+                {
+                    var extention = Path.GetExtension(file);
+                    if (extention != ".FBX" && extention != ".fbx")
+                    {
+                        continue;
+                    }
+                    var fbxAsset = AssetDatabase.LoadAssetAtPath<GameObject>(file);
+                    var fbxObject = Object.Instantiate(fbxAsset);
+                    fbxObject.name = fbxAsset.name;
+                    var meshFilter = fbxObject.GetComponent<MeshFilter>();
+                    var meshRenderer = fbxObject.GetComponent<MeshRenderer>();
 
-                var tex = meshRenderer.sharedMaterial.mainTexture as Texture2D;
-                SaveMesh(prefabDirectory, texDirectory, mesh, tex);
+                    var mesh = Object.Instantiate(meshFilter.sharedMesh) as Mesh;
+                    mesh.name = meshFilter.sharedMesh.name;
+                    mesh.UploadMeshData(false);
 
-                Object.DestroyImmediate(fbxObject);
+                    var tex = meshRenderer.sharedMaterial.mainTexture as Texture2D;
+                    SaveMesh(meshDirectory, texDirectory, mesh, tex);
 
-                AssetDatabase.Refresh();
+                    meshFilter.sharedMesh = mesh;
+                    meshRenderer.sharedMaterial = null;
+                    PrefabUtility.SaveAsPrefabAsset(fbxObject, $"{prefabDirectory}/{fbxObject.name}.prefab");
+
+                    Object.DestroyImmediate(fbxObject);
+
+                    AssetDatabase.Refresh();
+                }
             }
         }
 
